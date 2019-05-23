@@ -36,7 +36,7 @@ class ProcessCorpus:
             # for sent in doc.sentences:
             #     final_tokens.append(' '.join(sent.words))
 
-        final_tokens = '\n'.join(final_tokens[:4])
+        # final_tokens = '\n'.join(final_tokens[:4])
         return final_tokens
 
     @staticmethod
@@ -52,22 +52,43 @@ class ProcessCorpus:
             '-\u063A\u0641\u0642\u06A9\u06AF\u0644-\u0648\u06CC\u200c]',
             "", sentence)
 
-    @staticmethod
-    def __sentence_processing():
-        pass
-
-    def content_processing(self):
-        doc = self.nlp_pipeline(self.useful_content)
-        list_of_all_clen_sentences = []
+    def __sentence_processing(self, content):
+        doc = self.nlp_pipeline(content)
+        list_of_sent_after_removing_chars = []
         for sent in doc.sentences:
             sent_text = [a_word.text for a_word in sent.words]
             sent_text = ' '.join(sent_text)
             sent_after_removing_chars = self.__remove_chars(sent_text)
             if not sent_after_removing_chars.isspace():
                 sent_after_removing_chars = sent_after_removing_chars.strip()
-                list_of_all_clen_sentences.append(sent_after_removing_chars)
-        print(list_of_all_clen_sentences[:2])
-        self.__write_file('\n'.join(list_of_all_clen_sentences), "clean_corpus.txt")
+                list_of_sent_after_removing_chars.append(sent_after_removing_chars)
+        if len(list_of_sent_after_removing_chars) > 0:
+            return '\n'.join(list_of_sent_after_removing_chars)
+        else:
+            return None
+
+    def content_processing(self):
+        list_of_all_clen_contents = []
+        for content in self.useful_content:
+            clean_content = self.__sentence_processing(content)
+            if clean_content is not None:
+                list_of_all_clen_contents.append(clean_content)
+        self.__write_file('\n'.join(list_of_all_clen_contents), "clean_corpus.txt")
+        #
+        #
+        #
+        #
+        # doc = self.nlp_pipeline(self.useful_content)
+        # list_of_all_clen_sentences = []
+        # for sent in doc.sentences:
+        #     sent_text = [a_word.text for a_word in sent.words]
+        #     sent_text = ' '.join(sent_text)
+        #     sent_after_removing_chars = self.__remove_chars(sent_text)
+        #     if not sent_after_removing_chars.isspace():
+        #         sent_after_removing_chars = sent_after_removing_chars.strip()
+        #         list_of_all_clen_sentences.append(sent_after_removing_chars)
+        # print(list_of_all_clen_sentences[:2])
+        # self.__write_file('\n'.join(list_of_all_clen_sentences), "clean_corpus.txt")
 
 
 
