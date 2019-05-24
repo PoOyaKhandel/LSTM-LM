@@ -4,6 +4,10 @@ removes non-persian characters
 """
 import stanfordnlp
 import re
+from keras.preprocessing.text import Tokenizer
+import pandas as pd
+from random import shuffle
+
 
 class ProcessCorpus:
     """
@@ -37,7 +41,7 @@ class ProcessCorpus:
             #     final_tokens.append(' '.join(sent.words))
 
         # final_tokens = '\n'.join(final_tokens[:4])
-        return final_tokens
+        return final_tokens[:4]
 
     @staticmethod
     def __write_file(text, fname):
@@ -91,64 +95,70 @@ class ProcessCorpus:
         # self.__write_file('\n'.join(list_of_all_clen_sentences), "clean_corpus.txt")
 
 
+class SentencePreparation:
 
-# def remove_non_persian(mixed_str):
-#     mixed_str_words = mixed_str.split(' ')
-#     empty = lambda x: x != ''
-#
-#     min_range = int("0x600", 0)
-#     max_range = int("0x6FF", 0)
-#     clean_str_words = []
-#
-#     for aWord in filter(empty, mixed_str_words):
-#         if min_range < ord(aWord[0]) < max_range:
-#             clean_str_words.append(aWord)
-#     # clean_str = " ".join(clean_str_words)
-#     return clean_str_words
-#
-#
-#
-#
-#
-# def create_seq(tokens):
-#     length = 50 + 1
-#     sequences = []
-#     for i in range(length, len(tokens)):
-#         # select sequence of tokens
-#         m = i - length
-#         n = i
-#         seq = tokens[m:n]
-#         # convert into a line
-#         c = len(seq)
-#         line = ' '.join(seq)
-#         # store
-#         a = len(line)
-#         b = tokens[n]
-#         sequences.append(line)
-#     return sequences
-#
-#
-# # turn a doc into clean tokens
-# def clean_doc(doc):
-#     lines = doc.split("\n")
-#     final_tokens = []
-#     for line in lines:
-#         tokens = line.split('***')
-#         dirty_content = tokens[0]
-#         clean_content = remove_non_persian(dirty_content)
-#         if len(clean_content) != 0:
-#             final_tokens.extend(clean_content)
-#
-#     sequences = create_seq(final_tokens)
-#     return sequences
-#
-#
-# # save tokens to file, one dialog per line
-# def save_doc(lines, filename):
-#     data = '\n'.join(lines)
-#     file = open(filename, 'w')
-#     file.write(data)
-#     file.close()
+    def __init__(self, path):
+        self.text = self.load_text(path)
+        self.vocab_size = None
+        self.max_len = None
+
+    @staticmethod
+    def load_text(path):
+        with open(path, 'r') as ftext:
+            text = ftext.read()
+            ftext.close()
+        return text.split("\n")
+
+    @staticmethod
+    def __analyze_sent(sent):
+        reviews_len = [len(x) for x in sent]
+        pd.Series(reviews_len).hist()
+        describe = pd.Series(reviews_len).describe()
+        print("Sentences length distribution:\n", describe)
+        print("------------------------------")
+        return int(describe.values[1] + describe.values[2])
+
+    def tokenize(self):
+        tokenizer = Tokenizer()
+        tokenizer.fit_on_texts(self.text)
+        sequences = tokenizer.texts_to_sequences(self.text)
+        self.vocab_size = len(tokenizer.word_index) + 1
+        self.max_len = self.__analyze_sent(sequences)
+        return sequences
+
+    def __create_input_samples(self, base):
+        max_len = self.max_len
+        samples = []
+        samples_label = []
+        for el in base:
+            el_len = len(el)
+            if el_len > 2:
+                for i in range(el_len-1):
+                    if i < max_len:
+                        new_el = el[:i+1]
+                        new_el.extend([0]*(max_len-i-1))
+                        samples.append(new_el)
+                        samples_label.append(el[i+1])
+                    if i >= max_len:
+                        new_el = el[i-max_len+1:i+1]
+                        samples.append(new_el)
+                        samples_label.append(el[i+1])
+        return samples, samples_label
+
+    def train_test_split(self, factor, sequences):
+        """
+        creates train test sets after shuffling reviews(not in place)
+        :param factor: split factor for train test sets
+        :return: train and test data with their labels
+        """
+        shuffle(sequences)
+        train_x = sequences[:int(factor*len(sequences))]
+        test_x = sequences[int(factor*len(sequences))+1:]
+
+        train_x, train_y = self.__create_input_samples(train_x)
+        test_x, test_y = self.__create_input_samples(test_x)
+
+        return train_x, train_y, test_x, test_y
 
 
 if __name__ == '__main__':
