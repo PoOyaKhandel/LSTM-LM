@@ -105,3 +105,11 @@ venv.bak/
 
 # Pycharm project config
 .idea/
+
+
+# Temp files
+MirasText_sample.txt
+check.txt
+clean_corpus.txt
+main.ipynb
+
