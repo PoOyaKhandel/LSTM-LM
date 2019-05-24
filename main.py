@@ -26,26 +26,23 @@ train_x, train_y, test_x, test_y = sent_prepare.train_test_split(split_factor, s
 ############
 # # Training and Model definition
 
-#
-# # separate into input and output
-# sequences = array(sequences)
-# # x = pad_sequences(sequences, padding='post')
-# # print(x)
-# X, y = sequences[:-1], sequences[-1]
-# y = to_categorical(y, num_classes=vocab_size)
-# seq_length = X.shape[1]
-# # define model
-# model = Sequential()
-# model.add(Embedding(vocab_size, 50, input_length=seq_length))
-# model.add(LSTM(100, return_sequences=True))
-# model.add(LSTM(100))
-# model.add(Dense(100, activation='relu'))
-# model.add(Dense(vocab_size, activation='softmax'))
-# print(model.summary())
-# # compile model
-# model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-# # fit model
-# model.fit(X, y, batch_size=128, epochs=100)
+seq_length = sent_prepare.max_len
+# define model
+model = Sequential()
+model.add(Embedding(sent_prepare.vocab_size+1, 300, input_length=seq_length))
+model.add(LSTM(100, return_sequences=True))
+model.add(LSTM(100))
+model.add(Dense(100, activation='relu'))
+model.add(Dense(sent_prepare.vocab_size+1, activation='softmax'))
+print(model.summary())
+# compile model
+model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+# fit model
+model.fit(train_x, train_y, validation_split=0.1, batch_size=128, epochs=100)
+# test
+print('\n# Evaluate on test data')
+results = model.evaluate(test_x, test_y)
+print('test loss, test acc:', results)
 #
 # # save the model to file
 # model.save('model.h5')

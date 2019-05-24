@@ -7,7 +7,8 @@ import re
 from keras.preprocessing.text import Tokenizer
 import pandas as pd
 from random import shuffle
-
+import numpy as np
+from keras.utils import to_categorical
 
 class ProcessCorpus:
     """
@@ -157,6 +158,14 @@ class SentencePreparation:
 
         train_x, train_y = self.__create_input_samples(train_x)
         test_x, test_y = self.__create_input_samples(test_x)
+
+        train_x = np.array(train_x)
+        train_y = np.array(train_y)
+        train_y = to_categorical(train_y, num_classes=self.vocab_size+1)
+
+        test_x = np.array(test_x)
+        test_y = np.array(test_y)
+        test_y = to_categorical(test_y, num_classes=self.vocab_size+1)
 
         return train_x, train_y, test_x, test_y
 
