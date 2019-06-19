@@ -8,11 +8,13 @@ from keras.preprocessing.text import Tokenizer
 import pandas as pd
 from random import shuffle
 import numpy as np
+from multiprocessing import Process, Lock
+from time import time
 
 
 def write_file(text, fname):
     # print(text)
-    file = open(fname, 'w')
+    file = open(fname, 'a')
     file.write(text)
     file.close()
 
@@ -24,6 +26,9 @@ class ProcessCorpus:
         self.nlp_pipeline = stanfordnlp.Pipeline(processors='tokenize', lang='fa')
         all_text = self.__load_doc(fname)
         self.content = self.__remove_extra_info(all_text)
+        self.n_total_content = len(self.content)
+        self.iteration = 0
+        self.list_of_all_clean_contents = []
 
     @staticmethod
     def __load_doc(filename):
@@ -43,7 +48,7 @@ class ProcessCorpus:
             tokens = tokens.strip()
             final_tokens.append(tokens)
         # final_tokens = '\n'.join(final_tokens)
-        return final_tokens[0:5]
+        return final_tokens
 
     @staticmethod
     def __remove_chars(sentence, mode=1):
@@ -58,7 +63,17 @@ class ProcessCorpus:
                 '-\u063A\u0641\u0642\u06A9\u06AF\u0644-\u0648\u06CC]',
                 "", sentence)
 
-    def __sentence_processing(self, content):
+    def __make_clean_content_list(self, a_content, lck):
+        lck.acquire()
+        # print("acontent:", a_content)
+        self.iteration += 1
+        print(self.iteration, " Contents processed!")
+        write_file(a_content, "clean_corpus.txt")
+        lck.release()
+
+    def __sentence_processing(self, content, lck):
+        content = self.__remove_chars(content, mode=0)
+        # print("content:", content)
         doc = self.nlp_pipeline(content)
         list_of_sent_text = []
         for sent in doc.sentences:
@@ -69,18 +84,25 @@ class ProcessCorpus:
                 sent_text = " ".join(sent_text.split())
                 list_of_sent_text.append(sent_text)
         if len(list_of_sent_text) > 0:
-            return '\n'.join(list_of_sent_text)
-        else:
-            return None
+            self.__make_clean_content_list('\n'.join(list_of_sent_text) + '\n', lck)
 
     def content_processing(self):
-        list_of_all_clen_contents = []
+        all_process = []
+        lock = Lock()
+        t1 = time()
         for content in self.content:
-            content = self.__remove_chars(content, mode=0)
-            clean_content = self.__sentence_processing(content)
-            if clean_content is not None:
-                list_of_all_clen_contents.append(clean_content)
-        write_file('\n'.join(list_of_all_clen_contents), "clean_corpus.txt")
+            pr = Process(target=self.__sentence_processing, args=(content, lock))
+            all_process.append(pr)
+            pr.daemon = True
+            pr.start()
+            if len(all_process) == 4:
+                all_process[0].join()
+                all_process.remove(all_process[0])
+
+        t2 = time()
+        print("Sentence Tokenization Finished After", t2 - t1, "!")
+        print("Average time for a content", (t2-t1)/self.n_total_content)
+        print("Number of NonPersian Content:", self.n_total_content - self.iteration)
 
 
 class SentencePreparation:
@@ -159,10 +181,13 @@ class SentencePreparation:
 
 if __name__ == '__main__':
     fname = "MirasText_sample.txt"
+    write_file("", "clean_corpus.txt")
     cleanning_unit = ProcessCorpus(fname)
     # write_file(cleanning_unit.content, 'useful_content.txt')
+    print("useful_content")
     cleanning_unit.content_processing()
-
+    # write_file("Hello\n", "clean_corpus.txt")
+    # write_file("Pooya", "clean_corpus.txt")
 
 
 
