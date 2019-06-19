@@ -14,7 +14,6 @@ class LSTMModel(nn.Module):
         self.vocab_size = vocab_size
         self.n_hidden_l = n_hidden_l
         self.train_on_gpu = train_on_gpu
-
         self.__build_model()
 
     def __build_model(self):
@@ -48,4 +47,4 @@ class LSTMModel(nn.Module):
 
         return hidden_a, hidden_b
 
-    def forward(self, *input):
+    # def forward(self, *input):

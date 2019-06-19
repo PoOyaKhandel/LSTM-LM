@@ -8,17 +8,22 @@ from keras.preprocessing.text import Tokenizer
 import pandas as pd
 from random import shuffle
 import numpy as np
-from keras.utils import to_categorical
+
+
+def write_file(text, fname):
+    # print(text)
+    file = open(fname, 'w')
+    file.write(text)
+    file.close()
+
 
 class ProcessCorpus:
     """
-
     """
     def __init__(self, fname):
         self.nlp_pipeline = stanfordnlp.Pipeline(processors='tokenize', lang='fa')
         all_text = self.__load_doc(fname)
-        self.useful_content = self.__remove_extra_info(all_text)
-        # self.write_file(relavant_text, 'check.txt')
+        self.content = self.__remove_extra_info(all_text)
 
     @staticmethod
     def __load_doc(filename):
@@ -37,18 +42,8 @@ class ProcessCorpus:
             # removing extra spaces
             tokens = tokens.strip()
             final_tokens.append(tokens)
-            # doc = self.nlp_pipeline(tokens)
-            # for sent in doc.sentences:
-            #     final_tokens.append(' '.join(sent.words))
-
-        # final_tokens = '\n'.join(final_tokens[:4])
-        return final_tokens[:4]
-
-    @staticmethod
-    def __write_file(text, fname):
-        # print(text)
-        file = open(fname, 'w')
-        file.write(text)
+        # final_tokens = '\n'.join(final_tokens)
+        return final_tokens[0:5]
 
     @staticmethod
     def __remove_chars(sentence):
@@ -62,10 +57,9 @@ class ProcessCorpus:
         list_of_sent_after_removing_chars = []
         for sent in doc.sentences:
             sent_text = [a_word.text for a_word in sent.words]
-            sent_text = ' '.join(sent_text)
             sent_after_removing_chars = self.__remove_chars(sent_text)
             if not sent_after_removing_chars.isspace():
-                sent_after_removing_chars = sent_after_removing_chars.strip()
+                sent_after_removing_chars = " ".join(sent_after_removing_chars.split())
                 list_of_sent_after_removing_chars.append(sent_after_removing_chars)
         if len(list_of_sent_after_removing_chars) > 0:
             return '\n'.join(list_of_sent_after_removing_chars)
@@ -74,26 +68,12 @@ class ProcessCorpus:
 
     def content_processing(self):
         list_of_all_clen_contents = []
-        for content in self.useful_content:
+        for content in self.content:
+            # content = self.__remove_chars(content)
             clean_content = self.__sentence_processing(content)
             if clean_content is not None:
                 list_of_all_clen_contents.append(clean_content)
-        self.__write_file('\n'.join(list_of_all_clen_contents), "clean_corpus.txt")
-        #
-        #
-        #
-        #
-        # doc = self.nlp_pipeline(self.useful_content)
-        # list_of_all_clen_sentences = []
-        # for sent in doc.sentences:
-        #     sent_text = [a_word.text for a_word in sent.words]
-        #     sent_text = ' '.join(sent_text)
-        #     sent_after_removing_chars = self.__remove_chars(sent_text)
-        #     if not sent_after_removing_chars.isspace():
-        #         sent_after_removing_chars = sent_after_removing_chars.strip()
-        #         list_of_all_clen_sentences.append(sent_after_removing_chars)
-        # print(list_of_all_clen_sentences[:2])
-        # self.__write_file('\n'.join(list_of_all_clen_sentences), "clean_corpus.txt")
+        write_file('\n'.join(list_of_all_clen_contents), "clean_corpus.txt")
 
 
 class SentencePreparation:
@@ -172,8 +152,10 @@ class SentencePreparation:
 
 if __name__ == '__main__':
     fname = "MirasText_sample.txt"
-    test = ProcessCorpus(fname)
-    test.content_processing()
+    cleanning_unit = ProcessCorpus(fname)
+    # write_file(cleanning_unit.content, 'useful_content.txt')
+    cleanning_unit.content_processing()
+
 
 
 
