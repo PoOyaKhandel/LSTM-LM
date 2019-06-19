@@ -46,30 +46,37 @@ class ProcessCorpus:
         return final_tokens[0:5]
 
     @staticmethod
-    def __remove_chars(sentence):
-        return re.sub(
-            '[^ \u0622\u0627\u0628\u067E\u062A-\u062C\u0686\u062D-\u0632\u0698\u0633'
-            '-\u063A\u0641\u0642\u06A9\u06AF\u0644-\u0648\u06CC\u200c]',
-            "", sentence)
+    def __remove_chars(sentence, mode=1):
+        if mode == 0:
+            return re.sub(
+                '[^ \u0622\u0627\u0628\u067E\u062A-\u062C\u0686\u062D-\u0632\u0698\u0633'
+                '-\u063A\u0641\u0642\u06A9\u06AF\u0644-\u0648\u06CC\u200c\u060C\u061B\u061F\u002E\u0021]',
+                "", sentence)
+        else:
+            return re.sub(
+                '[^ \u0622\u0627\u0628\u067E\u062A-\u062C\u0686\u062D-\u0632\u0698\u0633'
+                '-\u063A\u0641\u0642\u06A9\u06AF\u0644-\u0648\u06CC]',
+                "", sentence)
 
     def __sentence_processing(self, content):
         doc = self.nlp_pipeline(content)
-        list_of_sent_after_removing_chars = []
+        list_of_sent_text = []
         for sent in doc.sentences:
             sent_text = [a_word.text for a_word in sent.words]
-            sent_after_removing_chars = self.__remove_chars(sent_text)
-            if not sent_after_removing_chars.isspace():
-                sent_after_removing_chars = " ".join(sent_after_removing_chars.split())
-                list_of_sent_after_removing_chars.append(sent_after_removing_chars)
-        if len(list_of_sent_after_removing_chars) > 0:
-            return '\n'.join(list_of_sent_after_removing_chars)
+            sent_text = ' '.join(sent_text)
+            sent_text = self.__remove_chars(sent_text)
+            if not sent_text.isspace():
+                sent_text = " ".join(sent_text.split())
+                list_of_sent_text.append(sent_text)
+        if len(list_of_sent_text) > 0:
+            return '\n'.join(list_of_sent_text)
         else:
             return None
 
     def content_processing(self):
         list_of_all_clen_contents = []
         for content in self.content:
-            # content = self.__remove_chars(content)
+            content = self.__remove_chars(content, mode=0)
             clean_content = self.__sentence_processing(content)
             if clean_content is not None:
                 list_of_all_clen_contents.append(clean_content)
