@@ -10,6 +10,7 @@ from random import shuffle
 import numpy as np
 from multiprocessing import Process, Lock
 from time import time
+import os
 
 
 def write_file(text, fname):
@@ -22,45 +23,71 @@ def write_file(text, fname):
 class ProcessCorpus:
     """
     """
-    def __init__(self, fname):
-        self.nlp_pipeline = stanfordnlp.Pipeline(processors='tokenize', lang='fa')
-        all_text = self.__load_doc(fname)
-        self.content = self.__remove_extra_info(all_text)
-        self.n_total_content = len(self.content)
-        self.iteration = 0
-        self.list_of_all_clean_contents = []
+    def __init__(self, path, n_files):
+        # self.nlp_pipeline = stanfordnlp.Pipeline(processors='tokenize', lang='fa')
+        self.path = path
+        self.n_files = n_files
+
+    def process_first_step(self):
+        cwd = os.getcwd()
+        step1_output_dir = cwd + '/step1_output/'
+        if os.path.exists(step1_output_dir):
+            raise NotImplementedError("first step processing exists!")
+        else:
+            os.mkdir(step1_output_dir)
+
+        output_files = [step1_output_dir + "step" + str(i+1) + "process.txt" for i in range(self.n_files)]
+        number_of_all_contents_after_first_step = 0
+        dirty_sample = 0
+        punctuation_set = set('\u200c\u060C\u061B\u061F\u002E\u0021 ')
+        with open(self.path, mode='r', encoding='utf8') as base_file:
+            for line in base_file:
+                tokens = line.split('***')
+                tokens = tokens[0].strip()
+                tokens = self.__remove_chars(tokens, mode='first_step')
+                if set(tokens).issubset(punctuation_set):
+                    dirty_sample += 1
+                else:
+                    with open(output_files[number_of_all_contents_after_first_step % self.n_files], 'a') as wr_file:
+                        wr_file.write(tokens + '\n')
+
+                number_of_all_contents_after_first_step += 1
+        print("Total samples:", number_of_all_contents_after_first_step,
+              "Clean samples:", number_of_all_contents_after_first_step - dirty_sample,
+              "Dirty samples:", dirty_sample)
+
+    # @staticmethod
+    # def __load_doc(filename):
+    #     file = open(filename, 'r')
+    #     text = file.read()
+    #     file.close()
+    #     return text
+    # @staticmethod
+    # def __remove_extra_info(text):
+    #     lines = text.split("\n")
+    #     final_tokens = []
+    #     for line in lines:
+    #         tokens = line.split('***')
+    #         tokens = tokens[0]
+    #         # removing extra spaces
+    #         tokens = tokens.strip()
+    #         final_tokens.append(tokens)
+    #     # final_tokens = '\n'.join(final_tokens)
+    #     return final_tokens
 
     @staticmethod
-    def __load_doc(filename):
-        file = open(filename, 'r')
-        text = file.read()
-        file.close()
-        return text
-
-    @staticmethod
-    def __remove_extra_info(text):
-        lines = text.split("\n")
-        final_tokens = []
-        for line in lines:
-            tokens = line.split('***')
-            tokens = tokens[0]
-            # removing extra spaces
-            tokens = tokens.strip()
-            final_tokens.append(tokens)
-        # final_tokens = '\n'.join(final_tokens)
-        return final_tokens
-
-    @staticmethod
-    def __remove_chars(sentence, mode=1):
-        if mode == 0:
+    def __remove_chars(sentence, mode='first_step'):
+        if mode == 'first_step':
+            sentence = re.sub('[\u0041-\u005A\u0061-\u007A]+', 'انگلیش', sentence)
+            sentence = re.sub('[\u0030-\u0039\u0660-\u0669\u06F0-\u06F9]+', 'نامبر', sentence)
             return re.sub(
-                '[^ \u0622\u0627\u0628\u067E\u062A-\u062C\u0686\u062D-\u0632\u0698\u0633'
-                '-\u063A\u0641\u0642\u06A9\u06AF\u0644-\u0648\u06CC\u200c\u060C\u061B\u061F\u002E\u0021]',
+                '[^ \u0622\u0624\u0626\u0627\u0628\u062A-\u063A\u0641-\u064A\u06CC\u067E\u0686\u0698'
+                '\u06A9\u06AA\u06AF\u06BE\u06CC\u06D0\u200c\u060C\u061B\u061F\u002E\u0021]',
                 "", sentence)
         else:
             return re.sub(
-                '[^ \u0622\u0627\u0628\u067E\u062A-\u062C\u0686\u062D-\u0632\u0698\u0633'
-                '-\u063A\u0641\u0642\u06A9\u06AF\u0644-\u0648\u06CC]',
+                '[^ \u0622\u0624\u0626\u0627\u0628\u062A-\u063A\u0641-\u064A\u06CC\u067E\u0686\u0698'
+                '\u06A9\u06AA\u06AF\u06BE\u06CC\u06D0]',
                 "", sentence)
 
     def __make_clean_content_list(self, a_content, lck):
@@ -103,6 +130,7 @@ class ProcessCorpus:
         print("Sentence Tokenization Finished After", t2 - t1, "!")
         print("Average time for a content", (t2-t1)/self.n_total_content)
         print("Number of NonPersian Content:", self.n_total_content - self.iteration)
+
 
 
 class SentencePreparation:
@@ -180,14 +208,14 @@ class SentencePreparation:
 
 
 if __name__ == '__main__':
-    fname = "MirasText_sample.txt"
-    write_file("", "clean_corpus.txt")
-    cleanning_unit = ProcessCorpus(fname)
-    # write_file(cleanning_unit.content, 'useful_content.txt')
-    print("useful_content")
-    cleanning_unit.content_processing()
-    # write_file("Hello\n", "clean_corpus.txt")
-    # write_file("Pooya", "clean_corpus.txt")
+    BASE_FILE_PATH = "MirasText_sample.txt"
+    n_files = 8
+
+    pr_corpus = ProcessCorpus(BASE_FILE_PATH, n_files)
+    pr_corpus.process_first_step()
+    # print("useful_content")
+    # cleanning_unit.content_processing()
+
 
 
 
