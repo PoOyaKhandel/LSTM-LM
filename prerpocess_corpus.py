@@ -52,6 +52,10 @@ class ProcessCorpus:
                         wr_file.write(tokens + '\n')
 
                 number_of_all_contents_after_first_step += 1
+
+                if number_of_all_contents_after_first_step % 100 == 0:
+                    print(number_of_all_contents_after_first_step," sample processed")
+
         print("Total samples:", number_of_all_contents_after_first_step,
               "Clean samples:", number_of_all_contents_after_first_step - dirty_sample,
               "Dirty samples:", dirty_sample)
