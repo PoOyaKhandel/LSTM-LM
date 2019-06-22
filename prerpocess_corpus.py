@@ -14,20 +14,14 @@ from time import time
 import os
 
 
-def write_file(text, fname):
-    # print(text)
-    file = open(fname, 'a')
-    file.write(text)
-    file.close()
-
-
 class ProcessCorpus:
     """
     """
-    def __init__(self, path, n_files, n_process):
+    def __init__(self, path, n_files, n_process, batch_size):
         self.base_file_path = path
         self.n_files = n_files
         self.n_process = n_process
+        self.batch_size = batch_size
 
     def process_first_step(self):
         cwd = os.getcwd()
@@ -88,12 +82,14 @@ class ProcessCorpus:
         for a_pr in all_process:
             a_pr.join()
 
-        print("########################################################################################################"
+        print("\n\n\n##################################################################################################"
               "HALF of INPUT FILES are NOW TOKENIZAED."
-              "#######################################################################################################")
+              "########################################################################################################"
+              "\n\n\n")
 
         for i in range(self.n_process):
-            pr = Process(target=self.__sentence_processing, args=(input_files[i+self.n_process], output_files[i]))
+            pr = Process(target=self.__sentence_processing, args=(input_files[i+self.n_process],
+                                                                  output_files[i+self.n_process]))
             all_process.append(pr)
             pr.daemon = True
             pr.start()
@@ -102,8 +98,8 @@ class ProcessCorpus:
             a_pr.join()
 
         t1 = time()
-        print("Second Step Processing is Finised After: ", (t1-t0)/3600, " hour."
-              "Output files of this step are stored in: ", step1_output_dir, ".")
+        print("Second Step Processing is Finised After: ", (t1-t0)/3600, " hour. "
+              "Output files of this step are stored in: ", step2_output_dir, ".")
 
     @staticmethod
     def __remove_chars(sentence, mode='first_step'):
@@ -127,11 +123,10 @@ class ProcessCorpus:
         with open(input_file, 'r') as inp_file:
             print("Sentence tokenization procedure is Started for File: ", input_file,  ".")
 
-            batch_size = 100
             data_processed = 0
             finished = False
             t_start = time()
-            a_text = list(islice(inp_file, data_processed, data_processed + batch_size - 1))
+            a_text = list(islice(inp_file, data_processed, data_processed + self.batch_size - 1))
             while not finished:
                 t_s_batch = time()
 
@@ -155,7 +150,7 @@ class ProcessCorpus:
                 print(data_processed, "docs of ", output_file, " are processed. Average time for a batch "
                                                                "per minute: ", (t_f_batch - t_s_batch) / 200)
 
-                a_text = list(islice(inp_file, data_processed, data_processed + batch_size - 1))
+                a_text = list(islice(inp_file, data_processed, data_processed + self.batch_size - 1))
                 if len(a_text) == 0:
                     finished = True
 
@@ -242,7 +237,8 @@ if __name__ == '__main__':
     BASE_FILE_PATH = "MirasText_sample.txt"
     n_files = 8
     n_process = 4
+    batch_size = 100
 
-    pr_corpus = ProcessCorpus(BASE_FILE_PATH, n_files, n_process)
-    # pr_corpus.process_first_step()
+    pr_corpus = ProcessCorpus(BASE_FILE_PATH, n_files, n_process, batch_size)
+    pr_corpus.process_first_step()
     pr_corpus.process_second_step()
