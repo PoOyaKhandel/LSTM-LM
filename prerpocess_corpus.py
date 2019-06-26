@@ -22,6 +22,8 @@ class ProcessCorpus:
         self.n_files = n_files
         self.n_process = n_process
         self.batch_size = batch_size
+        self.process_step_file_names = {'first_step': "process.txt", 'second_step': 'stp2_part',
+                                        'third_step': 'stp3_part'}
 
     def process_first_step(self):
         cwd = os.getcwd()
@@ -67,8 +69,10 @@ class ProcessCorpus:
         else:
             raise NotImplementedError("No first step processing exists!")
 
-        input_files = [step1_output_dir + "step" + str(i+1) + "process.txt" for i in range(self.n_files)]
-        output_files = [step2_output_dir + "step" + str(i + 1) + "process.txt" for i in range(self.n_files)]
+        input_files = [step1_output_dir + "step" + str(i + 1) + "process.txt" for i in range(self.n_files)]  # This line
+        # should be updated later[like the above line]
+        output_files = [step2_output_dir + self.process_step_file_names['second_step'] + str(i + 1) + ".txt"
+                        for i in range(self.n_files)]
 
         all_process = []
         print("Second Step Processing is Starting . . .")
@@ -87,6 +91,7 @@ class ProcessCorpus:
               "########################################################################################################"
               "\n\n\n")
 
+        all_process = []
         for i in range(self.n_process):
             pr = Process(target=self.__sentence_processing, args=(input_files[i+self.n_process],
                                                                   output_files[i+self.n_process]))
@@ -113,7 +118,7 @@ class ProcessCorpus:
         elif mode == 'second_step':
             return re.sub(
                 '[^ \u0622\u0624\u0626\u0627\u0628\u062A-\u063A\u0641-\u064A\u06CC\u067E\u0686\u0698'
-                '\u06A9\u06AA\u06AF\u06BE\u06CC\u06D0]',
+                '\u06A9\u06AA\u06AF\u06BE\u06CC\u06D0\u200c]',
                 "", sentence)
         else:
             raise NotImplementedError("Invalid mode of removing chars")
@@ -122,13 +127,25 @@ class ProcessCorpus:
         nlp_pipline = stanfordnlp.Pipeline(processors='tokenize', lang='fa')
         with open(input_file, 'r') as inp_file:
             print("Sentence tokenization procedure is Started for File: ", input_file,  ".")
+            line_cnt = 0
+            line_exists = True
 
             data_processed = 0
             finished = False
             t_start = time()
-            a_text = list(islice(inp_file, data_processed, data_processed + self.batch_size - 1))
             while not finished:
                 t_s_batch = time()
+
+                a_text = []
+                while line_cnt < self.batch_size and line_exists:
+                    a_line_of_input_file = inp_file.readline()
+                    if a_line_of_input_file != '':
+                        a_text.append(inp_file.readline())
+                        line_cnt += 1
+                    else:
+                        line_exists = False
+                        finished = True
+                line_cnt = 0
 
                 data_processed += len(a_text)
                 doc = nlp_pipline('\n'.join(a_text))
@@ -146,91 +163,13 @@ class ProcessCorpus:
                     out_file.write('\n'.join(list_of_sentence) + '\n')
                 t_f_batch = time()
 
-                # if data_processed % 2000 == 0:
                 print(data_processed, "docs of ", output_file, " are processed. Average time for a batch "
-                                                               "per minute: ", (t_f_batch - t_s_batch) / 200)
-
-                a_text = list(islice(inp_file, data_processed, data_processed + self.batch_size - 1))
-                if len(a_text) == 0:
-                    finished = True
+                                                               "per minute: ",
+                      (t_f_batch - t_s_batch) / self.batch_size)
 
             t_final = time()
             print("Sentence tokenization for ", output_file, " is finished after", (t_final - t_start)/3600, "hour"
                   "Average time per a tokenization: ", (t_final - t_start)/data_processed, " seconds.")
-
-
-class SentencePreparation:
-
-    def __init__(self, path):
-        self.text = self.load_text(path)
-        self.vocab_size = None
-        self.max_len = None
-
-    @staticmethod
-    def load_text(path):
-        with open(path, 'r') as ftext:
-            text = ftext.read()
-            ftext.close()
-        return text.split("\n")
-
-    @staticmethod
-    def __analyze_sent(sent):
-        reviews_len = [len(x) for x in sent]
-        pd.Series(reviews_len).hist()
-        describe = pd.Series(reviews_len).describe()
-        print("Sentences length distribution:\n", describe)
-        print("------------------------------")
-        return int(describe.values[1] + describe.values[2])
-
-    def tokenize(self):
-        tokenizer = Tokenizer()
-        tokenizer.fit_on_texts(self.text)
-        sequences = tokenizer.texts_to_sequences(self.text)
-        self.vocab_size = len(tokenizer.word_index) + 1
-        self.max_len = self.__analyze_sent(sequences)
-        return sequences
-
-    def __create_input_samples(self, base):
-        max_len = self.max_len
-        samples = []
-        samples_label = []
-        for el in base:
-            el_len = len(el)
-            if el_len > 2:
-                for i in range(el_len-1):
-                    if i < max_len:
-                        new_el = el[:i+1]
-                        new_el.extend([0]*(max_len-i-1))
-                        samples.append(new_el)
-                        samples_label.append(el[i+1])
-                    if i >= max_len:
-                        new_el = el[i-max_len+1:i+1]
-                        samples.append(new_el)
-                        samples_label.append(el[i+1])
-        return samples, samples_label
-
-    def train_test_split(self, factor, sequences):
-        """
-        creates train test sets after shuffling reviews(not in place)
-        :param factor: split factor for train test sets
-        :return: train and test data with their labels
-        """
-        shuffle(sequences)
-        train_x = sequences[:int(factor*len(sequences))]
-        test_x = sequences[int(factor*len(sequences))+1:]
-
-        train_x, train_y = self.__create_input_samples(train_x)
-        test_x, test_y = self.__create_input_samples(test_x)
-
-        train_x = np.array(train_x)
-        train_y = np.array(train_y)
-        train_y = to_categorical(train_y, num_classes=self.vocab_size+1)
-
-        test_x = np.array(test_x)
-        test_y = np.array(test_y)
-        test_y = to_categorical(test_y, num_classes=self.vocab_size+1)
-
-        return train_x, train_y, test_x, test_y
 
 
 if __name__ == '__main__':
@@ -240,5 +179,5 @@ if __name__ == '__main__':
     batch_size = 100
 
     pr_corpus = ProcessCorpus(BASE_FILE_PATH, n_files, n_process, batch_size)
-    pr_corpus.process_first_step()
+    # pr_corpus.process_first_step()
     pr_corpus.process_second_step()
