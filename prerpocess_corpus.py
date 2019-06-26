@@ -87,16 +87,18 @@ class ProcessCorpus:
               "########################################################################################################"
               "\n\n\n")
 
-        all_process = []
-        for i in range(self.n_process):
-            pr = Process(target=self.__sentence_processing, args=(input_files[i+self.n_process],
-                                                                  output_files[i+self.n_process]))
-            all_process.append(pr)
-            pr.daemon = True
-            pr.start()
+        cn = input("Do you want to continue? Y/N")
+        if cn == 'Y':
+            all_process = []
+            for i in range(self.n_process):
+                pr = Process(target=self.__sentence_processing, args=(input_files[i+self.n_process],
+                                                                      output_files[i+self.n_process]))
+                all_process.append(pr)
+                pr.daemon = True
+                pr.start()
 
-        for a_pr in all_process:
-            a_pr.join()
+            for a_pr in all_process:
+                a_pr.join()
 
         t1 = time()
         print("Second Step Processing is Finised After: ", (t1-t0)/3600, " hour. "
@@ -136,7 +138,7 @@ class ProcessCorpus:
                 while line_cnt < self.batch_size and line_exists:
                     a_line_of_input_file = inp_file.readline()
                     if a_line_of_input_file != '':
-                        a_text.append(inp_file.readline())
+                        a_text.append(a_line_of_input_file)
                         line_cnt += 1
                     else:
                         line_exists = False
@@ -176,5 +178,5 @@ if __name__ == '__main__':
     batch_size = 100
 
     pr_corpus = ProcessCorpus(BASE_FILE_PATH_MAIN, n_files, n_process, batch_size)
-    pr_corpus.process_first_step()
+    # pr_corpus.process_first_step()
     pr_corpus.process_second_step()
