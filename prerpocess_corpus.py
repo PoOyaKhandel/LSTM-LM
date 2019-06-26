@@ -17,7 +17,7 @@ class ProcessCorpus:
         self.n_files = n_files
         self.n_process = n_process
         self.batch_size = batch_size
-        self.process_step_file_names = {'first_step': "process.txt", 'second_step': 'stp2_part',
+        self.process_step_file_names = {'first_step': "stp1_part", 'second_step': 'stp2_part',
                                         'third_step': 'stp3_part'}
 
     def process_first_step(self):
@@ -175,5 +175,5 @@ if __name__ == '__main__':
     batch_size = 100
 
     pr_corpus = ProcessCorpus(BASE_FILE_PATH, n_files, n_process, batch_size)
-    # pr_corpus.process_first_step()
-    pr_corpus.process_second_step()
+    pr_corpus.process_first_step()
+    # pr_corpus.process_second_step()
