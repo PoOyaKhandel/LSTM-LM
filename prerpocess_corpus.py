@@ -114,10 +114,12 @@ class ProcessCorpus:
                 '\u06A9\u06AA\u06AF\u06BE\u06CC\u06D0\u200c\u060C\u061B\u061F\u002E\u0021]',
                 "", sentence)
         elif mode == 'second_step':
-            return re.sub(
+            sentence = re.sub('[\u200c]+', ' ', sentence)
+            sentence = re.sub(
                 '[^ \u0622\u0624\u0626\u0627\u0628\u062A-\u063A\u0641-\u064A\u06CC\u067E\u0686\u0698'
-                '\u06A9\u06AA\u06AF\u06BE\u06CC\u06D0\u200c]',
+                '\u06A9\u06AA\u06AF\u06BE\u06CC\u06D0]',
                 "", sentence)
+            return sentence
         else:
             raise NotImplementedError("Invalid mode of removing chars")
 
@@ -161,6 +163,9 @@ class ProcessCorpus:
                     out_file.write('\n'.join(list_of_sentence) + '\n')
                 t_f_batch = time()
 
+                if data_processed == 500:
+                    print(time() - t_start, " ", output_file)
+
                 print(data_processed, "docs of ", output_file, " are processed. Average time for a batch "
                                                                "per minute: ",
                       (t_f_batch - t_s_batch) / self.batch_size)
@@ -175,7 +180,7 @@ if __name__ == '__main__':
     BASE_FILE_PATH_MAIN = "/home/aut_speech/po_oya/MirasText.txt"
     n_files = 8
     n_process = 4
-    batch_size = 100
+    batch_size = 200
 
     pr_corpus = ProcessCorpus(BASE_FILE_PATH_MAIN, n_files, n_process, batch_size)
     # pr_corpus.process_first_step()
