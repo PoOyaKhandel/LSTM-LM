@@ -169,11 +169,12 @@ class ProcessCorpus:
 
 
 if __name__ == '__main__':
-    BASE_FILE_PATH = "MirasText_sample.txt"
+    BASE_FILE_PATH_SHORT = "MirasText_sample.txt"
+    BASE_FILE_PATH_MAIN = "/home/aut_speech/po_oya/MirasText.txt"
     n_files = 8
     n_process = 4
     batch_size = 100
 
-    pr_corpus = ProcessCorpus(BASE_FILE_PATH, n_files, n_process, batch_size)
+    pr_corpus = ProcessCorpus(BASE_FILE_PATH_MAIN, n_files, n_process, batch_size)
     pr_corpus.process_first_step()
-    # pr_corpus.process_second_step()
+    pr_corpus.process_second_step()
