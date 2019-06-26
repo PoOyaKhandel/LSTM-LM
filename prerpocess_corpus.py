@@ -4,12 +4,7 @@ removes non-persian characters
 """
 import stanfordnlp
 import re
-from keras.preprocessing.text import Tokenizer
-import pandas as pd
-from random import shuffle
-from itertools import islice
-import numpy as np
-from multiprocessing import Process, Lock
+from multiprocessing import Process
 from time import time
 import os
 
@@ -33,7 +28,8 @@ class ProcessCorpus:
         else:
             os.mkdir(step1_output_dir)
 
-        output_files = [step1_output_dir + "step" + str(i+1) + "process.txt" for i in range(self.n_files)]
+        output_files = [step1_output_dir + self.process_step_file_names['first_step'] + str(i + 1) + ".txt"
+                        for i in range(self.n_files)]
         number_of_all_contents_after_first_step = 0
         dirty_sample = 0
         punctuation_set = set('\u200c\u060C\u061B\u061F\u002E\u0021 ')
@@ -69,8 +65,8 @@ class ProcessCorpus:
         else:
             raise NotImplementedError("No first step processing exists!")
 
-        input_files = [step1_output_dir + "step" + str(i + 1) + "process.txt" for i in range(self.n_files)]  # This line
-        # should be updated later[like the above line]
+        input_files = [step1_output_dir + self.process_step_file_names['first_step'] + str(i + 1) + ".txt"
+                       for i in range(self.n_files)]
         output_files = [step2_output_dir + self.process_step_file_names['second_step'] + str(i + 1) + ".txt"
                         for i in range(self.n_files)]
 
